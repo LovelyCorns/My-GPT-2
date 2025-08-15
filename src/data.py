@@ -2,7 +2,7 @@ import pyarrow.parquet as pq
 import torch
 from tokenizer import Tokenizer
 
-path = './fineweb/014_00000.parquet'
+path = './fineweb/004_00000.parquet'
 
 
 class PreTrainData:
