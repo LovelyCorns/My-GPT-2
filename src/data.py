@@ -19,19 +19,21 @@ class PreTrainData:
         return [self.tokenizer.encode(parquet_file.read_row_group(i)[0][0].as_py()) for i in
                 range(parquet_file.num_row_groups)]
 
-    def get_batch(self, use_type='train', block_size=1024, seq_size=1):
+    def get_batch(self, use_type='train', seq_size=1024, batch_size=1):
         data = self.train if use_type == 'train' else self.valid
 
         data_ix = torch.randint(len(data), (1,))
         data = data[data_ix]
-        ix = torch.randint(len(data) - block_size, (seq_size,))
-        x = torch.stack([torch.tensor(data[i: i + block_size]) for i in ix])
-        y = torch.stack([torch.tensor(data[i + 1: i + block_size + 1]) for i in ix])
+        ix = torch.randint(len(data) - seq_size, (batch_size,))
+        x = torch.stack([torch.tensor(data[i: i + seq_size]) for i in ix])
+        y = torch.stack([torch.tensor(data[i + 1: i + seq_size + 1]) for i in ix])
         return x, y
 
 
 if __name__ == '__main__':
     data = PreTrainData(0.9)
     x, y = data.get_batch("vaild", 64, 2)
+    print(x)
+    print(y)
     print(x.shape)
     print(y.shape)

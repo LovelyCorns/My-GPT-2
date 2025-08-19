@@ -1,11 +1,8 @@
 import tiktoken as tk
 
-encoding_name = "o200k_base"
-
-
 class Tokenizer:
 
-    def __init__(self):
+    def __init__(self, encoding_name="gpt2"):
         self.enc = tk.get_encoding(encoding_name)
         self.vocab_size = self.enc.n_vocab
 

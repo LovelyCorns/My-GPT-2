@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from src.data import PreTrainData
 from tokenizer import Tokenizer
@@ -10,10 +11,10 @@ from tokenizer import Tokenizer
 
 @dataclass
 class ModelConfig:
-    n_embd: int = 32
+    n_embd: int = 16
     n_head: int = 2
-    n_ctx: int = 1024
-    n_layer: int = 1
+    n_ctx: int = 64
+    n_layer: int = 2
     device: str = "cpu"
 
 class Model(nn.Module):
@@ -22,24 +23,39 @@ class Model(nn.Module):
         super().__init__(*args, **kwargs)
         self.device = device
         self.tokenizer = Tokenizer()
-        self.n_layer = n_layer
-        self.n_hc = n_hc
-        self.n_ctx = n_ctx
-        self.n_embd = n_embd
         self.max_token = max_token
         self.wte = nn.Embedding(self.tokenizer.vocab_size, n_embd)
         self.wpe = nn.Embedding(n_ctx, n_embd)
-        self.blocks = Block(n_ctx, n_embd, n_hc, p)
+        self.blocks = nn.Sequential(*[Block(n_ctx, n_embd, n_hc, p) for _ in range(n_layer)])
+        self.ln = nn.LayerNorm(n_embd)
+        self.lm_head = nn.Linear(n_embd, self.tokenizer.vocab_size)
 
-    def forward(self, ids):
-        T, C = ids.shape
-        # B, T, C = ids.shape
+    def forward(self, ids, labels=None):
+        B, T = ids.shape
         tok_emb = self.wte(ids)
         pos_emb = self.wpe(torch.arange(T))
-        x = tok_emb + pos_emb
-        x = self.blocks(x)
-        print(x[::-1])
+        x = self.ln(self.blocks(tok_emb + pos_emb))
+        logits = self.lm_head(x)
 
+        if labels is not None:
+            B, T, C = logits.shape
+            logits = logits.view(B * T, C)
+            labels = labels.view(B * T)
+            loss = F.cross_entropy(logits, labels)
+            return logits, loss
+        else:
+            return logits
+
+    def gen(self, ids):
+        ids = ids.to(self.device)
+        for i in range(self.max_token):
+            logits = self(ids)
+            last_embd = logits[:, -1:]
+            last_embd = F.softmax(last_embd.squeeze(1), dim=-1)
+            sample = torch.multinomial(last_embd, num_samples=1)
+            ids = torch.cat((ids, sample), dim=1)
+            print(ids)
+            # print(self.tokenizer.decode(sample[0][0]) + ',')
 
 class Block(nn.Module):
 
@@ -48,6 +64,18 @@ class Block(nn.Module):
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
         self.attn = MA(n_hc, n_ctx, n_embd, p)
+        self.mlp = MLP(n_embd, p)
+
+    def forward(self, x):
+        x = x + self.attn(self.ln1(x))
+        x = x + self.mlp(self.ln2(x))
+        return x
+
+
+class MLP(nn.Module):
+
+    def __init__(self, n_embd, p, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.mlp = nn.Sequential(
             nn.Linear(n_embd, 4 * n_embd),
             nn.GELU(),
@@ -56,9 +84,7 @@ class Block(nn.Module):
         )
 
     def forward(self, x):
-        x = x + self.attn(self.ln1(x))
-        x = x + self.mlp(self.ln2(x))
-        return x
+        return x + self.mlp(x)
 
 
 class MA(nn.Module):
@@ -100,19 +126,17 @@ class Head(nn.Module):
         k_q = torch.softmax(k_q, -1)
         k_q = self.dropout(k_q)
         r = k_q @ v
-        print(f"结果形状: {r.shape}")
         return r
 
 
 if __name__ == '__main__':
     config = ModelConfig()
-    model = Model(config.n_ctx, 5, config.n_embd, config.n_head, config.n_layer, config.device)
+    model = Model(config.n_ctx, 5, config.n_embd, config.n_head, 0.1, n_layer=config.n_layer, device=config.device)
     data = PreTrainData(0.9)
-    X, Y = data.get_batch(block_size=32)
+    X, Y = data.get_batch(seq_size=32)
     X = X.to(device=config.device)
     Y = Y.to(device=config.device)
-    print(X.shape)
-    model.forward(X)
+    model.gen(X)
     # head = Head(32, 8, 16)
 
     # hs = MA(n_hc=12, n_ctx=32, n_embd=768)
