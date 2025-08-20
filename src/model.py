@@ -11,17 +11,26 @@ from tokenizer import Tokenizer
 
 @dataclass
 class ModelConfig:
+    # n_embd: int = 768
+    # n_head: int = 12
+    # n_ctx: int = 1024
+    # n_layer: int = 12
     n_embd: int = 16
     n_head: int = 2
-    n_ctx: int = 64
+    n_ctx: int = 50
     n_layer: int = 2
     device: str = "cpu"
+    max_iter: int = 40
+    lr = 1e-3
+    interval: int = 10
+    eval_iter: int = 10
 
 class Model(nn.Module):
 
     def __init__(self, n_ctx, max_token, n_embd, n_hc, p, n_layer, device="cuda", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.device = device
+        self.n_ctx = n_ctx
         self.tokenizer = Tokenizer()
         self.max_token = max_token
         self.wte = nn.Embedding(self.tokenizer.vocab_size, n_embd)
@@ -48,15 +57,19 @@ class Model(nn.Module):
 
     def gen(self, ids):
         ids = ids.to(self.device)
+
         for i in range(self.max_token):
             logits = self(ids)
             last_embd = logits[:, -1:]
             last_embd = F.softmax(last_embd.squeeze(1), dim=-1)
             sample = torch.multinomial(last_embd, num_samples=1)
             ids = torch.cat((ids, sample), dim=1)
-            print(ids)
-            # print(self.tokenizer.decode(sample[0][0]) + ',')
 
+            # only do tailor last 1k context when 2nd dim overflow
+            if ids.shape[1] > self.n_ctx:
+                ids = ids[:, -self.n_ctx:]
+
+        return ids
 class Block(nn.Module):
 
     def __init__(self, n_ctx, n_embd, n_hc, p: float = 0.1, *args, **kwargs):
@@ -129,14 +142,35 @@ class Head(nn.Module):
         return r
 
 
+#  test
 if __name__ == '__main__':
     config = ModelConfig()
     model = Model(config.n_ctx, 5, config.n_embd, config.n_head, 0.1, n_layer=config.n_layer, device=config.device)
     data = PreTrainData(0.9)
-    X, Y = data.get_batch(seq_size=32)
-    X = X.to(device=config.device)
-    Y = Y.to(device=config.device)
-    model.gen(X)
+
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name, param.shape)
+    # for i in range(config.max_iter):
+    #     if i % config.interval == 0:
+    #         out = l_e(model, data, config)
+    #         print(f"iter: {i}, out:{out}")
+    #
+    #     X, Y = data.get_batch(seq_size=32, batch_size=2)
+    #     X = X.to(device=config.device)
+    #     Y = Y.to(device=config.device)
+    #     adamW = torch.optim.AdamW(model.parameters())
+    #     # ids = model.gen(X)
+    #     logits, loss = model(X, Y)
+    #     adamW.zero_grad(set_to_none=True)
+    #     loss.backward()
+    #     adamW.step()
+
+    # for b in range(ids.shape[0]):
+    #     seq = ids[b, :]
+    #     print(seq)
+    #     print(model.tokenizer.decode(seq.tolist()))
+    # model.tokenizer.decode()
     # head = Head(32, 8, 16)
 
     # hs = MA(n_hc=12, n_ctx=32, n_embd=768)
