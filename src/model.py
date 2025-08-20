@@ -11,14 +11,10 @@ from tokenizer import Tokenizer
 
 @dataclass
 class ModelConfig:
-    # n_embd: int = 768
-    # n_head: int = 12
-    # n_ctx: int = 1024
-    # n_layer: int = 12
-    n_embd: int = 16
-    n_head: int = 2
-    n_ctx: int = 50
-    n_layer: int = 2
+    n_embd: int = 768
+    n_head: int = 12
+    n_ctx: int = 1024
+    n_layer: int = 12
     device: str = "cpu"
     max_iter: int = 40
     lr = 1e-3
