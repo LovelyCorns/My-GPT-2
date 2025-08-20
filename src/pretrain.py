@@ -68,6 +68,7 @@ def save_model(model, config, save_dir="checkpoints", model_name=None):
     torch.save(model_info, os.path.join(model_path, "model_info.pth"))
 
     print(f"model saved to: {model_path}")
+    print(f"model info: {model_info}")
 
     return model_path
 

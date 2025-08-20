@@ -11,15 +11,21 @@ from tokenizer import Tokenizer
 
 @dataclass
 class ModelConfig:
-    n_embd: int = 768
-    n_head: int = 12
-    n_ctx: int = 1024
-    n_layer: int = 12
+    # n_embd: int = 768
+    # n_head: int = 12
+    # n_ctx: int = 1024
+    # n_layer: int = 12
+    n_embd: int = 16
+    n_head: int = 2
+    n_ctx: int = 50
+    n_layer: int = 2
     device: str = "cpu"
-    max_iter: int = 40
+    interval: int = 100
+    max_iter: int = 4 * interval * interval
+    # max_iter: int = 40
     lr = 1e-3
-    interval: int = 10
-    eval_iter: int = 10
+    eval_iter: int = interval
+
 
 class Model(nn.Module):
 
@@ -66,6 +72,8 @@ class Model(nn.Module):
                 ids = ids[:, -self.n_ctx:]
 
         return ids
+
+
 class Block(nn.Module):
 
     def __init__(self, n_ctx, n_embd, n_hc, p: float = 0.1, *args, **kwargs):
