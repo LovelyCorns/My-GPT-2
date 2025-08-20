@@ -43,8 +43,8 @@ class Model(nn.Module):
 
     def forward(self, ids, labels=None):
         B, T = ids.shape
-        tok_emb = self.wte(ids).to(self.device)
-        pos_emb = self.wpe(torch.arange(T).to(self.device))
+        tok_emb = self.wte(ids)
+        pos_emb = self.wpe(torch.arange(T, device=self.device))
         x = self.ln(self.blocks(tok_emb + pos_emb))
         logits = self.lm_head(x)
 
