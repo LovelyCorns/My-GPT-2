@@ -19,7 +19,7 @@ class ModelConfig:
     n_head: int = 2
     n_ctx: int = 50
     n_layer: int = 2
-    device: str = "cpu"
+    device: str = "cuda"
     interval: int = 100
     max_iter: int = 4 * interval * interval
     # max_iter: int = 40
@@ -29,7 +29,7 @@ class ModelConfig:
 
 class Model(nn.Module):
 
-    def __init__(self, n_ctx, max_token, n_embd, n_hc, p, n_layer, device="cuda", *args, **kwargs):
+    def __init__(self, n_ctx, max_token, n_embd, n_hc, p, n_layer, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.device = device
         self.n_ctx = n_ctx
@@ -43,8 +43,8 @@ class Model(nn.Module):
 
     def forward(self, ids, labels=None):
         B, T = ids.shape
-        tok_emb = self.wte(ids)
-        pos_emb = self.wpe(torch.arange(T))
+        tok_emb = self.wte(ids).to(self.device)
+        pos_emb = self.wpe(torch.arange(T).to(self.device))
         x = self.ln(self.blocks(tok_emb + pos_emb))
         logits = self.lm_head(x)
 
