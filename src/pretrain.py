@@ -110,7 +110,7 @@ if __name__ == '__main__':
     tokenizers = Tokenizer()
     config = ModelConfig()
     model = Model(config.n_ctx, 200, config.n_embd, config.n_head, config.p, n_layer=config.n_layer,
-                  device=config.device).to(config.device)
+                  device=config.device)
     data = PreTrainData(0.9)
     prompt = torch.tensor(tokenizers.encode("hello world!")).unsqueeze(0).to(config.device)
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     patience_counter = 0
     adamW = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=0.1)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        adamW, mode='min', factor=0.5, patience=3, verbose=True
+        adamW, mode='min', factor=0.5, patience=3
     )
 
     for i in range(config.max_iter):
@@ -140,10 +140,10 @@ if __name__ == '__main__':
                 print(f"best val loss: {current_val_loss:.4f}")
             else:
                 patience_counter += 1
-                print(f"验证损失未改善 ({patience_counter}/{patience})")
+                print(f"val loss can't be descend! ==> ({patience_counter}/{patience})")
 
                 if patience_counter >= patience:
-                    print("早停触发！停止训练")
+                    print("========================= stop training =========================")
                     break
 
         X, Y = data.get_batch(seq_size=1024, batch_size=16)
