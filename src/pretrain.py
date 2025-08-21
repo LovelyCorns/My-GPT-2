@@ -105,6 +105,7 @@ def load_model(model_path, device="cpu"):
 
 
 if __name__ == '__main__':
+    torch.manual_seed(10384)
     tokenizers = Tokenizer()
     config = ModelConfig()
     model = Model(config.n_ctx, 200, config.n_embd, config.n_head, 0.1, n_layer=config.n_layer, device=config.device)

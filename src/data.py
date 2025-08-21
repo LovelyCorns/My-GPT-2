@@ -1,5 +1,6 @@
 import pyarrow.parquet as pq
 import torch
+
 from tokenizer import Tokenizer
 
 path = './fineweb/004_00000.parquet'
@@ -11,6 +12,17 @@ class PreTrainData:
         self.tokenizer = Tokenizer()
         all = self.load_dataset()
         train_len = int(len(all) * train_rate)
+
+        def concatenate_docs(docs):
+            result = []
+            for doc in docs:
+                result.extend(doc)
+                result.append(self.tokenizer.encode("<|endoftext|>")[0])
+            return result
+
+        all_tokens = concatenate_docs(all)
+        train_len = int(len(all_tokens) * train_rate)
+
         self.train = all[:train_len]
         self.valid = all[train_len:]
 
