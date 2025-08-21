@@ -110,7 +110,7 @@ if __name__ == '__main__':
     tokenizers = Tokenizer()
     config = ModelConfig()
     model = Model(config.n_ctx, 200, config.n_embd, config.n_head, config.p, n_layer=config.n_layer,
-                  device=config.device)
+                  device=config.device).to(config.device)
     data = PreTrainData(0.9)
     prompt = torch.tensor(tokenizers.encode("hello world!")).unsqueeze(0).to(config.device)
 
