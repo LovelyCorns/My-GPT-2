@@ -20,10 +20,10 @@ class ModelConfig:
     n_ctx: int = 50
     n_layer: int = 2
     device: str = "cuda"
-    interval: int = 100
-    max_iter: int = 4 * interval * interval
+    interval: int = 1000
+    max_iter: int = 10 * interval
     # max_iter: int = 40
-    lr = 1e-3
+    lr = 1e-4
     eval_iter: int = interval
 
 

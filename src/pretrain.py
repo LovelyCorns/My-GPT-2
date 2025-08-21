@@ -115,6 +115,7 @@ if __name__ == '__main__':
 
     model.train()
     best_val_loss = float('inf')
+    adamW = torch.optim.AdamW(model.parameters(), lr=config.lr)
 
     for i in range(config.max_iter):
         if i % config.interval == 0:
@@ -127,10 +128,9 @@ if __name__ == '__main__':
                 best_val_loss = current_val_loss
                 print(f"best val loss: {current_val_loss:.4f}")
 
-        X, Y = data.get_batch(seq_size=32, batch_size=2)
+        X, Y = data.get_batch(seq_size=1024, batch_size=16)
         X = X.to(device=config.device)
         Y = Y.to(device=config.device)
-        adamW = torch.optim.AdamW(model.parameters(), lr=config.lr)
         logits, loss = model(X, Y)
         adamW.zero_grad(set_to_none=True)
         loss.backward()
