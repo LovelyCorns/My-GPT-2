@@ -11,7 +11,6 @@ class PreTrainData:
     def __init__(self, train_rate):
         self.tokenizer = Tokenizer()
         all = self.load_dataset()
-        train_len = int(len(all) * train_rate)
 
         def concatenate_docs(docs):
             result = []
@@ -23,8 +22,8 @@ class PreTrainData:
         all_tokens = concatenate_docs(all)
         train_len = int(len(all_tokens) * train_rate)
 
-        self.train = all[:train_len]
-        self.valid = all[train_len:]
+        self.train = all_tokens[:train_len]
+        self.valid = all_tokens[train_len:]
 
     def load_dataset(self):
         parquet_file = pq.ParquetFile(path)
@@ -34,8 +33,10 @@ class PreTrainData:
     def get_batch(self, use_type='train', seq_size=1024, batch_size=1):
         data = self.train if use_type == 'train' else self.valid
 
-        data_ix = torch.randint(len(data), (1,))
-        data = data[data_ix]
+        if len(data) <= seq_size:
+            raise ValueError(f"{use_type} dataset tokens which length is ({len(data)}) "
+                             f"aren't able to generate each seq which size is {seq_size}")
+
         ix = torch.randint(len(data) - seq_size, (batch_size,))
         x = torch.stack([torch.tensor(data[i: i + seq_size]) for i in ix])
         y = torch.stack([torch.tensor(data[i + 1: i + seq_size + 1]) for i in ix])

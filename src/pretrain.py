@@ -14,7 +14,7 @@ def loss_estimate(model, data, config):
     for split in ['train', 'val']:
         losses = torch.zeros(config.eval_iter)
         for k in range(config.eval_iter):
-            X, Y = data.get_batch(use_type=split, seq_size=32, batch_size=2)
+            X, Y = data.get_batch(use_type=split, seq_size=200, batch_size=2)
             X = X.to(config.device)
             Y = Y.to(config.device)
             logits, loss = model(X, Y)
