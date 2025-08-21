@@ -1,6 +1,7 @@
-import torch
 import os
 from datetime import datetime
+
+import torch
 
 from src.data import PreTrainData
 from src.model import ModelConfig, Model
@@ -108,7 +109,8 @@ if __name__ == '__main__':
     torch.manual_seed(10384)
     tokenizers = Tokenizer()
     config = ModelConfig()
-    model = Model(config.n_ctx, 200, config.n_embd, config.n_head, 0.1, n_layer=config.n_layer, device=config.device)
+    model = Model(config.n_ctx, 200, config.n_embd, config.n_head, config.p, n_layer=config.n_layer,
+                  device=config.device)
     data = PreTrainData(0.9)
     prompt = torch.tensor(tokenizers.encode("hello world!")).unsqueeze(0).to(config.device)
 
@@ -116,7 +118,12 @@ if __name__ == '__main__':
 
     model.train()
     best_val_loss = float('inf')
-    adamW = torch.optim.AdamW(model.parameters(), lr=config.lr)
+    patience = 5
+    patience_counter = 0
+    adamW = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=0.1)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        adamW, mode='min', factor=0.5, patience=3, verbose=True
+    )
 
     for i in range(config.max_iter):
         if i % config.interval == 0:
@@ -125,9 +132,19 @@ if __name__ == '__main__':
             print(f"model generate: {tokenizers.decode(model.gen(prompt)[0].tolist())}")
 
             current_val_loss = out['val']
+            scheduler.step(current_val_loss)
+
             if current_val_loss < best_val_loss:
                 best_val_loss = current_val_loss
+                patience_counter = 0
                 print(f"best val loss: {current_val_loss:.4f}")
+            else:
+                patience_counter += 1
+                print(f"验证损失未改善 ({patience_counter}/{patience})")
+
+                if patience_counter >= patience:
+                    print("早停触发！停止训练")
+                    break
 
         X, Y = data.get_batch(seq_size=1024, batch_size=16)
         X = X.to(device=config.device)
@@ -135,6 +152,7 @@ if __name__ == '__main__':
         logits, loss = model(X, Y)
         adamW.zero_grad(set_to_none=True)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         adamW.step()
 
     print("========================= finish =========================")

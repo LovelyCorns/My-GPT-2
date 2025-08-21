@@ -25,6 +25,7 @@ class ModelConfig:
     # max_iter: int = 40
     lr = 1e-4
     eval_iter: int = interval
+    p: float = 0.3
 
 
 class Model(nn.Module):
@@ -82,10 +83,11 @@ class Block(nn.Module):
         self.ln2 = nn.LayerNorm(n_embd)
         self.attn = MA(n_hc, n_ctx, n_embd, p)
         self.mlp = MLP(n_embd, p)
+        self.drop = nn.Dropout(p)
 
     def forward(self, x):
-        x = x + self.attn(self.ln1(x))
-        x = x + self.mlp(self.ln2(x))
+        x = x + self.drop(self.attn(self.ln1(x)))
+        x = x + self.drop(self.mlp(self.ln2(x)))
         return x
 
 
