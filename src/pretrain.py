@@ -83,8 +83,9 @@ def load_model(model_path, config):
     config_dict = torch.load(os.path.join(model_path, "config.pth"), map_location=config.device)
 
     print(f"\n previous training configs:")
-    print(
-        f"   model: {config_dict.get('n_layer', 'N/A')} layers, {config_dict.get('n_embd', 'N/A')}D of embeddings, {config_dict.get('n_head', 'N/A')} heads")
+    print(f"model: {config_dict.get('n_layer', 'N/A')} layers, "
+          f"{config_dict.get('n_embd', 'N/A')}D of embeddings, "
+          f"{config_dict.get('n_head', 'N/A')} heads")
     print(f"   training configs: lr={config_dict.get('lr', 'N/A')}, max_iter={config_dict.get('max_iter', 'N/A')}")
     print(f"   device: {config_dict.get('device', 'N/A')}")
 
@@ -131,9 +132,14 @@ if __name__ == '__main__':
     tokenizers = Tokenizer()
     config = ModelConfig()
 
-    model = load_model(config.model_checkpoints_path, config) if config.continue_pretrain else Model(
-        config.n_ctx, 200, config.n_embd, config.n_head, config.p, n_layer=config.n_layer,
-        device=config.device)
+    if config.continue_pretrain:
+        model, _, _ = load_model(config.model_checkpoints_path, config)
+    else:
+        model = Model(
+            config.n_ctx, 200,
+            config.n_embd, config.n_head, config.p,
+            n_layer=config.n_layer, device=config.device
+        )
     data = PreTrainData(0.9, config.dataset_path)
     prompt = torch.tensor(tokenizers.encode("hello world!")).unsqueeze(0).to(config.device)
 
