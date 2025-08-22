@@ -18,13 +18,13 @@ class ModelConfig:
     device: str = "cuda"
     interval: int = 1000
     max_iter: int = 10 * interval
-    # max_iter: int = 40
     lr = 1e-4
     eval_iter: int = interval
     p: float = 0.3
     dataset_path = './fineweb/004_00000.parquet'
     model_checkpoints_path = '' # it could not be null if continue_pretrain is true
     continue_pretrain = False
+    patience = 2
 
 
 class Model(nn.Module):
