@@ -76,27 +76,45 @@ def save_model(model, config, save_dir="checkpoints", model_name=None):
     return model_path
 
 
-def load_model(model_path, device="cpu"):
+def load_model(model_path, config):
     """
     load model from checkpoint
     """
-    config_dict = torch.load(os.path.join(model_path, "config.pth"), map_location=device)
+    config_dict = torch.load(os.path.join(model_path, "config.pth"), map_location=config.device)
 
-    # 重新创建模型
+    print(f"\n previous training configs:")
+    print(
+        f"   model: {config_dict.get('n_layer', 'N/A')} layers, {config_dict.get('n_embd', 'N/A')}D of embeddings, {config_dict.get('n_head', 'N/A')} heads")
+    print(f"   training configs: lr={config_dict.get('lr', 'N/A')}, max_iter={config_dict.get('max_iter', 'N/A')}")
+    print(f"   device: {config_dict.get('device', 'N/A')}")
+
+    warnings = []
+    if config_dict.get('n_embd') != config.n_embd:
+        warnings.append(f"n_embd: {config_dict.get('n_embd')} vs {config.n_embd}")
+    if config_dict.get('n_head') != config.n_head:
+        warnings.append(f"n_head: {config_dict.get('n_head')} vs {config.n_head}")
+    if config_dict.get('n_layer') != config.n_layer:
+        warnings.append(f"n_layer: {config_dict.get('n_layer')} vs {config.n_layer}")
+
+    if warnings:
+        print("NotCompatibleException: ")
+        for warning in warnings:
+            print(f"   {warning}")
+
     model = Model(
         n_ctx=config_dict['n_ctx'],
         max_token=config_dict['max_token'],
         n_embd=config_dict['n_embd'],
         n_hc=config_dict['n_head'],
-        p=0.1,
+        p=config.p,
         n_layer=config_dict['n_layer'],
-        device=device
+        device=config.device
     )
 
-    state_dict = torch.load(os.path.join(model_path, "model_state_dict.pth"), map_location=device)
+    state_dict = torch.load(os.path.join(model_path, "model_state_dict.pth"), map_location=config.device)
     model.load_state_dict(state_dict)
 
-    model_info = torch.load(os.path.join(model_path, "model_info.pth"), map_location=device)
+    model_info = torch.load(os.path.join(model_path, "model_info.pth"), map_location=config.device)
 
     print(f"model loaded from: {model_path}")
     print(f"all parameter count: {model_info['total_params']:,}")
@@ -106,12 +124,17 @@ def load_model(model_path, device="cpu"):
 
 
 if __name__ == '__main__':
+    """
+    base generative pre-train model training script
+    """
     torch.manual_seed(10384)
     tokenizers = Tokenizer()
     config = ModelConfig()
-    model = Model(config.n_ctx, 200, config.n_embd, config.n_head, config.p, n_layer=config.n_layer,
-                  device=config.device)
-    data = PreTrainData(0.9)
+
+    model = load_model(config.model_checkpoints_path, config) if config.continue_pretrain else Model(
+        config.n_ctx, 200, config.n_embd, config.n_head, config.p, n_layer=config.n_layer,
+        device=config.device)
+    data = PreTrainData(0.9, config.dataset_path)
     prompt = torch.tensor(tokenizers.encode("hello world!")).unsqueeze(0).to(config.device)
 
     print("========================= training =========================")
@@ -121,9 +144,7 @@ if __name__ == '__main__':
     patience = 5
     patience_counter = 0
     adamW = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=0.1)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        adamW, mode='min', factor=0.5, patience=3
-    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(adamW, mode='min', factor=0.5, patience=3)
 
     for i in range(config.max_iter):
         if i % config.interval == 0:
@@ -136,15 +157,15 @@ if __name__ == '__main__':
 
             if current_val_loss < best_val_loss:
                 best_val_loss = current_val_loss
-                patience_counter = 0
+                # patience_counter = 0
                 print(f"best val loss: {current_val_loss:.4f}")
-            else:
-                patience_counter += 1
-                print(f"val loss can't be descend! ==> ({patience_counter}/{patience})")
-
-                if patience_counter >= patience:
-                    print("========================= stop training =========================")
-                    break
+            # else:
+            #     patience_counter += 1
+            #     print(f"val loss can't be descend! ==> ({patience_counter}/{patience})")
+            #
+            #     if patience_counter >= patience:
+            #         print("========================= stop training =========================")
+            #         break
 
         X, Y = data.get_batch(seq_size=1024, batch_size=16)
         X = X.to(device=config.device)

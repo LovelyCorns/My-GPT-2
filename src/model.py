@@ -11,14 +11,10 @@ from tokenizer import Tokenizer
 
 @dataclass
 class ModelConfig:
-    # n_embd: int = 768
-    # n_head: int = 12
-    # n_ctx: int = 1024
-    # n_layer: int = 12
-    n_embd: int = 16
-    n_head: int = 2
-    n_ctx: int = 50
-    n_layer: int = 2
+    n_embd: int = 768
+    n_head: int = 12
+    n_ctx: int = 1024
+    n_layer: int = 12
     device: str = "cuda"
     interval: int = 1000
     max_iter: int = 10 * interval
@@ -26,6 +22,9 @@ class ModelConfig:
     lr = 1e-4
     eval_iter: int = interval
     p: float = 0.3
+    dataset_path = './fineweb/004_00000.parquet'
+    model_checkpoints_path = '' # it could not be null if continue_pretrain is true
+    continue_pretrain = False
 
 
 class Model(nn.Module):

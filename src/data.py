@@ -3,13 +3,12 @@ import torch
 
 from tokenizer import Tokenizer
 
-path = './fineweb/004_00000.parquet'
-
 
 class PreTrainData:
 
-    def __init__(self, train_rate):
+    def __init__(self, train_rate, path):
         self.tokenizer = Tokenizer()
+        self.path = path
         all = self.load_dataset()
 
         def concatenate_docs(docs):
@@ -26,7 +25,7 @@ class PreTrainData:
         self.valid = all_tokens[train_len:]
 
     def load_dataset(self):
-        parquet_file = pq.ParquetFile(path)
+        parquet_file = pq.ParquetFile(self.path)
         return [self.tokenizer.encode(parquet_file.read_row_group(i)[0][0].as_py()) for i in
                 range(parquet_file.num_row_groups)]
 
