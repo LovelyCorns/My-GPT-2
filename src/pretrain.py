@@ -146,7 +146,6 @@ if __name__ == '__main__':
 
     model.train()
     best_val_loss = float('inf')
-    previous_val_loss = float('inf')
     patience_counter = 0
     adamW = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=0.1)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(adamW, mode='min', factor=0.5, patience=3)
@@ -160,8 +159,10 @@ if __name__ == '__main__':
             current_val_loss = out['val']
             scheduler.step(current_val_loss)
 
-            if current_val_loss < previous_val_loss:
+            if current_val_loss < best_val_loss:
+                best_val_loss = current_val_loss
                 patience_counter = 0
+                print(f"best val loss: {current_val_loss:.4f}")
             else:
                 patience_counter += 1
                 print(f"val loss can't be descend! ==> ({patience_counter}/{config.patience})")
@@ -169,12 +170,6 @@ if __name__ == '__main__':
                 if patience_counter >= config.patience:
                     print("========================= stop training =========================")
                     break
-
-            previous_val_loss = current_val_loss
-
-            if current_val_loss < best_val_loss:
-                best_val_loss = current_val_loss
-                print(f"best val loss: {current_val_loss:.4f}")
 
         X, Y = data.get_batch(seq_size=1024, batch_size=16)
         X = X.to(device=config.device)

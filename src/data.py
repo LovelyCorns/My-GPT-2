@@ -9,7 +9,8 @@ class PreTrainData:
     def __init__(self, train_rate, path):
         self.tokenizer = Tokenizer()
         self.path = path
-        all = self.load_dataset()
+        all_data = self.load_dataset()
+        train_len = int(len(all_data) * train_rate)
 
         def concatenate_docs(docs):
             result = []
@@ -18,11 +19,8 @@ class PreTrainData:
                 result.append(self.tokenizer.encode("<|endoftext|>")[0])
             return result
 
-        all_tokens = concatenate_docs(all)
-        train_len = int(len(all_tokens) * train_rate)
-
-        self.train = all_tokens[:train_len]
-        self.valid = all_tokens[train_len:]
+        self.train = concatenate_docs(all_data[:train_len])
+        self.valid = concatenate_docs(all_data[train_len:])
 
     def load_dataset(self):
         parquet_file = pq.ParquetFile(self.path)
@@ -43,9 +41,10 @@ class PreTrainData:
 
 
 if __name__ == '__main__':
-    data = PreTrainData(0.9)
+    data = PreTrainData(0.9, './fineweb/000_00000.parquet')
     x, y = data.get_batch("vaild", 64, 2)
-    print(x)
-    print(y)
-    print(x.shape)
-    print(y.shape)
+    print(data.valid)
+    # print(x)
+    # print(y)
+    # print(x.shape)
+    # print(y.shape)

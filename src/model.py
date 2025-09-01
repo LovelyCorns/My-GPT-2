@@ -16,15 +16,15 @@ class ModelConfig:
     n_ctx: int = 1024
     n_layer: int = 12
     device: str = "cuda"
-    interval: int = 1000
-    max_iter: int = 10 * interval
-    lr = 1e-4
+    interval: int = 100
+    max_iter: int = 50 * interval
+    lr = 2.5e-4
     eval_iter: int = interval
-    p: float = 0.3
-    dataset_path = './fineweb/004_00000.parquet'
-    model_checkpoints_path = '' # it could not be null if continue_pretrain is true
-    continue_pretrain = False
-    patience = 2
+    p: float = 0.1
+    dataset_path = './fineweb/000_00007.parquet'
+    model_checkpoints_path = './checkpoints/gpt2_base_20250825_104521' # it could not be null if continue_pretrain is true
+    continue_pretrain = True
+    patience = 3
 
 
 class Model(nn.Module):
